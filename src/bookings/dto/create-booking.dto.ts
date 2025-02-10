@@ -1,15 +1,9 @@
 import { SessionType } from '../../sessions/session.entity';
 
 export class CreateBookingDto {
-
   clientName: string;
-
-
   clientEmail: string;
-
-
   clientPhone: string;
-
   sessions: {
     date: string;
     startTime: string;
@@ -17,6 +11,5 @@ export class CreateBookingDto {
     trainerId: number;
     type:SessionType;
   }[];
-
   termsAccepted: boolean;
 }

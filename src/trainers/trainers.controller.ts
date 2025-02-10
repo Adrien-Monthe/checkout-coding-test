@@ -2,6 +2,8 @@
 import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
 import { TrainersService } from './trainers.service';
 import { Trainer } from './trainer.entity';
+import { ApiBody } from '@nestjs/swagger';
+import { CreateTrainerDto } from './dto/create-trainer.dto';
 
 @Controller('trainers')
 export class TrainersController {
@@ -19,9 +21,9 @@ export class TrainersController {
     return this.trainerService.findOne(Number(id));
   }
 
-  // POST /trainers - create a new trainer
   @Post()
-  async create(@Body() trainerData: Partial<Trainer>): Promise<Trainer> {
+  @ApiBody({ type: CreateTrainerDto })
+  async create(@Body() trainerData: CreateTrainerDto): Promise<Trainer> {
     return this.trainerService.create(trainerData);
   }
 

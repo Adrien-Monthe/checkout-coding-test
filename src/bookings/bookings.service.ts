@@ -55,7 +55,10 @@ export class BookingsService {
       }
 
       // Calculate the duration and cost.
-      const durationInMinutes = this.calculateDurationInMinutes(startTime, endTime);
+      const durationInMinutes = this.calculateDurationInMinutes(
+        startTime,
+        endTime,
+      );
       const hourlyRate = await this.sessionsService.getTrainerHourlyRate(trainerId);
       const sessionCost = Number(hourlyRate) * (durationInMinutes / 60);
       totalCost += sessionCost;
@@ -84,5 +87,26 @@ export class BookingsService {
     }
     // Assuming booking.sessions stores the session details (e.g., as JSON).
     return booking.sessions;
+  }
+
+  /**
+   * Calculates the total price based on an array of session details.
+   * Each session cost is calculated using the trainer's hourly rate and the session duration.
+   *
+   * @param sessions Array of sessions containing trainerId, date, startTime, and endTime.
+   * @returns Total price as a number.
+   */
+  async calculateTotalPrice(sessions: { trainerId: number; date: string; startTime: string; endTime: string; }[]): Promise<number> {
+    let totalCost = 0;
+    for (const session of sessions) {
+      // Calculate duration in minutes.
+      const durationInMinutes = this.calculateDurationInMinutes(session.startTime, session.endTime);
+      // Get trainer's hourly rate (assumed to be defined in SessionsService).
+      const hourlyRate = await this.sessionsService.getTrainerHourlyRate(session.trainerId);
+      // Calculate cost: hourlyRate * (durationInMinutes / 60)
+      const sessionCost = Number(hourlyRate) * (durationInMinutes / 60);
+      totalCost += sessionCost;
+    }
+    return totalCost;
   }
 }
