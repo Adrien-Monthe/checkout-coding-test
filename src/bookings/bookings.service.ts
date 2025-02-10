@@ -1,51 +1,74 @@
 // bookings/bookings.service.ts
 import { Injectable, BadRequestException, Inject } from '@nestjs/common';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Booking } from './booking.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
-import { Session } from '../sessions/session.entity';
+import { SessionsService } from '../sessions/sessions.service';
 
 @Injectable()
 export class BookingsService {
   constructor(
     @Inject('BOOKING_REPOSITORY')
     private readonly bookingRepository: Repository<Booking>,
-    @Inject('SESSION_REPOSITORY')
-    private readonly sessionRepository: Repository<Session>,
+    private readonly sessionsService: SessionsService
   ) {}
+
+  /**
+   * Calculates the duration in minutes between two time strings in "HH:MM:SS" format.
+   */
+  private calculateDurationInMinutes(startTime: string, endTime: string): number {
+    const [startH, startM, startS] = startTime.split(':').map(Number);
+    const [endH, endM, endS] = endTime.split(':').map(Number);
+    const startDate = new Date(0, 0, 0, startH, startM, startS);
+    const endDate = new Date(0, 0, 0, endH, endM, endS);
+    let diff = (endDate.getTime() - startDate.getTime()) / 60000;
+    if (diff < 0) {
+      // Adjust for sessions crossing midnight.
+      diff += 24 * 60;
+    }
+    return diff;
+  }
 
   async createBooking(createBookingDto: CreateBookingDto): Promise<Booking> {
     if (!createBookingDto.termsAccepted) {
       throw new BadRequestException('Terms and conditions must be accepted.');
     }
 
-    // Validate session availability
-    const sessionIds = createBookingDto.sessions.map(s => s.sessionId);
-    const sessions = await this.sessionRepository.find({
-      where: { id: In(sessionIds), available: true },
-    });
+    let totalCost = 0;
 
-    if (sessions.length !== sessionIds.length) {
-      throw new BadRequestException('One or more sessions are no longer available.');
+    // Verify trainer availability and calculate cost for each session from the DTO.
+    for (const sessionDto of createBookingDto.sessions) {
+      const { trainerId, date, startTime, endTime } = sessionDto;
+
+      // Check if the trainer is available at the given date and time.
+      const isAvailable = await this.sessionsService.isTrainerAvailable(
+        trainerId,
+        date,
+        startTime,
+        endTime
+      );
+
+      if (!isAvailable) {
+        throw new BadRequestException(
+          `Trainer ${trainerId} is not available on ${date} from ${startTime} to ${endTime}.`
+        );
+      }
+
+      // Calculate the duration and cost.
+      const durationInMinutes = this.calculateDurationInMinutes(startTime, endTime);
+      const hourlyRate = await this.sessionsService.getTrainerHourlyRate(trainerId);
+      const sessionCost = Number(hourlyRate) * (durationInMinutes / 60);
+      totalCost += sessionCost;
     }
-
-    // Calculate total cost (example logic: price * (duration / 60))
-    const totalCost = createBookingDto.sessions.reduce((total, session) => {
-      return total + (session.price * (session.duration / 60));
-    }, 0);
 
     const booking = this.bookingRepository.create({
       ...createBookingDto,
-      totalCost,
+      totalCost: totalCost,
     });
 
     const savedBooking = await this.bookingRepository.save(booking);
 
-    // Update sessions to mark them as unavailable
-    for (const session of sessions) {
-      session.available = false;
-      await this.sessionRepository.save(session);
-    }
+    const createdSessions = await this.sessionsService.createSessionsFromBookingDto(createBookingDto.sessions, savedBooking.id);
 
     return savedBooking;
   }

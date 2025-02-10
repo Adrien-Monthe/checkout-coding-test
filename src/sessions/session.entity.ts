@@ -1,4 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+// sessions/session.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Trainer } from '../trainers/trainer.entity';
+import { Booking } from '../bookings/booking.entity';
 
 export enum SessionType {
   PADEL = 'padel',
@@ -14,18 +17,24 @@ export class Session {
   @Column({ type: 'enum', enum: SessionType })
   type: SessionType;
 
-  @Column()
-  trainer: string;
+  // Relationship to the Trainer entity
+  @ManyToOne(() => Trainer, trainer => trainer.sessions, { eager: true })
+  @JoinColumn({ name: 'trainerId' })
+  trainer: Trainer;
 
-  @Column()
-  timeSlot: Date;
+  @ManyToOne(() => Booking, booking => booking.sessions, { eager: true })
+  @JoinColumn({ name: 'bookingId' })
+  booking: Trainer;
 
-  @Column()
-  duration: number; // in minutes
+  // The date on which the session takes place (YYYY-MM-DD)
+  @Column({ type: 'date' })
+  date: string;
 
-  @Column('decimal')
-  price: number;
+  // The start time of the session (HH:MM:SS)
+  @Column({ type: 'time' })
+  startTime: string;
 
-  @Column({ default: true })
-  available: boolean;
+  // The end time of the session (HH:MM:SS)
+  @Column({ type: 'time' })
+  endTime: string;
 }
