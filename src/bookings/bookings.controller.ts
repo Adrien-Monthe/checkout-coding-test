@@ -11,7 +11,9 @@ export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Post()
-  async createBooking(@Body() createBookingDto: CreateBookingDto): Promise<Booking> {
+  async createBooking(
+    @Body() createBookingDto: CreateBookingDto,
+  ): Promise<Booking> {
     return this.bookingsService.createBooking(createBookingDto);
   }
 
@@ -24,8 +26,12 @@ export class BookingsController {
   // POST /bookings/total-price - Calculates and returns the total price for a list of sessions.
   @Post('total-price')
   @ApiBody({ type: CalculateTotalPriceDto })
-  async calculateTotalPrice(@Body() dto: CalculateTotalPriceDto): Promise<{ totalPrice: number }> {
-    const totalPrice = await this.bookingsService.calculateTotalPrice(dto.sessions);
+  async calculateTotalPrice(
+    @Body() dto: CalculateTotalPriceDto,
+  ): Promise<{ totalPrice: number }> {
+    const totalPrice = await this.bookingsService.calculateTotalPrice(
+      dto.sessions,
+    );
     return { totalPrice };
   }
 }
