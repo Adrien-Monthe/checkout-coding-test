@@ -39,4 +39,10 @@ export class TrainersController {
   async remove(@Param('id') id: string): Promise<void> {
     return this.trainerService.remove(Number(id));
   }
+
+  // GET /trainers/:id/sessions - returns sessions for a trainer
+  @Get(':id/sessions')
+  async getSessions(@Param('id') id: string): Promise<any> {
+    return this.trainerService.findSessions(Number(id));
+  }
 }

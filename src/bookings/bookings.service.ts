@@ -1,5 +1,5 @@
 // bookings/bookings.service.ts
-import { Injectable, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Booking } from './booking.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -68,8 +68,21 @@ export class BookingsService {
 
     const savedBooking = await this.bookingRepository.save(booking);
 
-    const createdSessions = await this.sessionsService.createSessionsFromBookingDto(createBookingDto.sessions, savedBooking.id);
+   await this.sessionsService.createSessionsFromBookingDto(createBookingDto.sessions, savedBooking.id);
 
     return savedBooking;
+  }
+
+
+  // New method to get sessions stored in a booking.
+  async getBookingSessions(bookingId: number): Promise<any> {
+    const booking = await this.bookingRepository.findOne({
+      where: { id: bookingId },
+    });
+    if (!booking) {
+      throw new NotFoundException(`Booking with id ${bookingId} not found.`);
+    }
+    // Assuming booking.sessions stores the session details (e.g., as JSON).
+    return booking.sessions;
   }
 }

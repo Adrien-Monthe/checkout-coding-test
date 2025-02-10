@@ -2,6 +2,7 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Trainer } from './trainer.entity';
+import { Session } from '../sessions/session.entity';
 
 @Injectable()
 export class TrainersService {
@@ -41,5 +42,17 @@ export class TrainersService {
   async remove(id: number): Promise<void> {
     const trainer = await this.findOne(id);
     await this.trainerRepository.delete(trainer.id);
+  }
+
+  // Get sessions for a specific trainer by loading relations
+  async findSessions(trainerId: number): Promise<Session[]> {
+    const trainer = await this.trainerRepository.findOne({
+      where: { id: trainerId },
+      relations: ['sessions'], // ensure that 'sessions' is the relation name in Trainer
+    });
+    if (!trainer) {
+      throw new NotFoundException(`Trainer with id ${trainerId} not found.`);
+    }
+    return trainer.sessions;
   }
 }
